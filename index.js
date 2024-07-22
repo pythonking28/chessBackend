@@ -60,7 +60,7 @@ io.on("connection", (socket) => {
 
   socket.on("move", (message) => {
     const gameID = socket.gameID;
-    console.log(gameID)
+    if(!gameID) return
 
     const game = games[gameID]
     // console.log(game)
