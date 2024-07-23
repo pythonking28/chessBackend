@@ -3,8 +3,10 @@ import http from "http";
 import { Server } from "socket.io";
 import { Chess } from "chess.js";
 import { v4 as uuidv4 } from 'uuid';
+import cors from 'cors'
 
 const app = express();
+app.use(cors())
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
