@@ -24,11 +24,8 @@ io.on("connection", (socket) => {
       return false;
     }) ?? false;
 
-    console.log(gameID)
-
     if (!gameID) {
       gameID = uuidv4();
-      console.log(gameID)
       games[gameID] = {
         chess: new Chess(),
         playerRole: {
@@ -41,17 +38,16 @@ io.on("connection", (socket) => {
 
     if (!game.playerRole.white) {
       game.playerRole.white = socket.id;
+      // console.log("w-"+socket.id)
       socket.emit("sid", "w");
     } else if (!game.playerRole.black) {
       game.playerRole.black = socket.id;
       socket.emit("sid", "b");
+      // console.log("b-"+socket.id)
     }
     socket.gameID = gameID;
-    console.log(socket.gameID)
-    console.log(game.playerRole.white)
-    console.log(game.playerRole.black)
-    console.log("socket ko game ID mila ki nahi")
-    socket.join(gameID);
+
+    socket.join(gameID)
     if(game.playerRole.white && game.playerRole.black) {
 
         console.log("game started");
@@ -59,17 +55,32 @@ io.on("connection", (socket) => {
   });
 
   socket.on("move", (message) => {
-    const gameID = socket.gameID;
-    if(!gameID) return
 
+    const gameID = socket.gameID;
+    
     const game = games[gameID]
-    // console.log(game)
+
+    if(!game) return
     if(game.playerRole.white === socket.id && game.chess.turn() !== 'w') return
     if(game.playerRole.black === socket.id && game.chess.turn() !== 'b') return
-    console.log(message);
+    let turn = game.chess.turn()
     try {
       if (game.chess.move(message)) {
         io.to(gameID).emit("move", game.chess?.fen());
+        if(game.chess.inCheck()){
+          if(game.chess.isCheckmate()){
+            io.to(gameID).emit("win",turn)
+          }
+        }
+        if(game.chess.isDraw() || game.chess.isInsufficientMaterial()){
+          io.to(gameID).emit("draw","The game is drawn")
+        }
+        if(game.chess.isStalemate()){
+          io.to(gameID).emit("draw","The game is drawn due to stalemate")
+        }
+        if(game.chess.isThreefoldRepetition()){
+          io.to(gameID).emit("draw","The game is drawn due to three fold repetition")
+        }
       }
     } catch (error) {
       console.error(error);
@@ -77,13 +88,21 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    console.log("disconnected")
     const gameID = socket.gameID;
     const game = games[gameID];
     if(!game) return
-    if(game.playerRole.white === socket.id) game.playerRole.white = ""
-    if(game.playerRole.black === socket.id) game.playerRole.black = ""
-    if(!game.playerRole.white && !game.playerRole.black) delete games[gameID]
+    if(game.playerRole.white === socket.id) {
+      game.playerRole.white = ""
+      io.to(gameID).emit("win", "b")
+    }
+    if(game.playerRole.black === socket.id) {
+      game.playerRole.black = ""
+      io.to(gameID).emit("win", "w")
+    }
+    delete games[gameID]
   })
+  
 });
 
 server.listen(3001, () => {
