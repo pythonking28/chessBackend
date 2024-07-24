@@ -89,14 +89,8 @@ io.on("connection", (socket) => {
             io.to(gameID).emit("win",turn)
           }
         }
-        if(game.chess.isDraw() || game.chess.isInsufficientMaterial()){
-          io.to(gameID).emit("draw","The game is drawn")
-        }
-        if(game.chess.isStalemate()){
-          io.to(gameID).emit("draw","The game is drawn due to stalemate")
-        }
-        if(game.chess.isThreefoldRepetition()){
-          io.to(gameID).emit("draw","The game is drawn due to three fold repetition")
+        if(game.chess.isDraw() || game.chess.isInsufficientMaterial() || game.chess.isStalemate() || game.chess.isThreefoldRepetition()){
+          io.to(gameID).emit("win","d")
         }
       }
     } catch (error) {
@@ -104,18 +98,21 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("disconnect", () => {
+
+  socket.on("disconnect", (message) => {
     console.log("disconnected")
     const gameID = socket.gameID;
     const game = games[gameID];
     if(!game) return
-    if(game.playerRole.white === socket.id) {
-      game.playerRole.white = ""
-      io.to(gameID).emit("win", "b")
-    }
-    if(game.playerRole.black === socket.id) {
-      game.playerRole.black = ""
-      io.to(gameID).emit("win", "w")
+    if(!(message==="draw")){
+      if(game.playerRole.white === socket.id) {
+        game.playerRole.white = ""
+        io.to(gameID).emit("win", "b")
+      }
+      if(game.playerRole.black === socket.id) {
+        game.playerRole.black = ""
+        io.to(gameID).emit("win", "w")
+      }
     }
     delete games[gameID]
   })
